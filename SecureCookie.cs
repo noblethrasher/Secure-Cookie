@@ -31,7 +31,6 @@ namespace Harmony
             
         public NameValueCollection Values 
         {
-
             get
             {
                 return IsEncrypted ? new NameValueCollection () : Cookie.Values;
@@ -45,18 +44,14 @@ namespace Harmony
 
         public void Encrypt()
         {
-           if(!IsEncrypted)
-           {
-               this.Cookie.Value = MachineKey.Encode (Encoding.Unicode.GetBytes (this.Value), MachineKeyProtection.Encryption);
-           }           
+            if (!IsEncrypted)
+                this.Cookie.Value = MachineKey.Encode (Encoding.Unicode.GetBytes (this.Value), MachineKeyProtection.Encryption);
         }
 
         public void Decrypt()
         {
             if (IsEncrypted)
-            {
                 this.Cookie.Value = Encoding.Unicode.GetString (MachineKey.Decode (this.Value, MachineKeyProtection.Encryption));
-            }
         }
 
         public SecureCookie(HttpCookie cookie)
@@ -74,10 +69,8 @@ namespace Harmony
             var cookie = new HttpCookie (Name);
 
             foreach (var kv in dictionary)
-            {
                 cookie.Values.Add (kv.Key, kv.Value);
-            }
-
+            
             this.Cookie = cookie;
         }
 
