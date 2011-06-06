@@ -25,14 +25,7 @@ namespace Harmony
         {
             get
             {
-                if (!IsEncrypted)
-                {
-                    return Cookie.HasKeys;
-                }
-                else
-                {
-                    return new Nullable<bool> ();
-                }
+                return IsEncrypted ? new Nullable<bool> () : new Nullable<bool> (Cookie.HasKeys);
             }
         }
             
