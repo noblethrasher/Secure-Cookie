@@ -88,6 +88,19 @@ namespace Harmony
             this.Cookie = new HttpCookie (Name, Value);
         }
 
+        public SecureCookie(string Name, IDictionary<string, string> dictionary)
+        {
+            var cookie = new HttpCookie (Name);
+
+            foreach (var kv in dictionary)
+            {
+                cookie.Values.Add (kv.Key, kv.Value);
+            }
+
+            this.Cookie = cookie;
+
+        }
+
         public static implicit operator SecureCookie(HttpCookie cookie)
         {
             return new SecureCookie (cookie);            
