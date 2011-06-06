@@ -11,8 +11,6 @@ namespace Harmony
     public class SecureCookie
     {
         public HttpCookie Cookie { get; private set; }
-        
-
         public bool IsEncrypted { get; private set; }
 
         public string Name { get { return Cookie.Name; } set { Cookie.Name = value; } }
@@ -98,7 +96,6 @@ namespace Harmony
             }
 
             this.Cookie = cookie;
-
         }
 
         public static implicit operator SecureCookie(HttpCookie cookie)
