@@ -34,23 +34,13 @@ namespace Harmony
 
             get
             {
-                if (IsEncrypted)
-                {
-                    return new NameValueCollection ();
-                }
-                else
-                {
-                    return this.Cookie.Values;
-                }
+                return IsEncrypted ? new NameValueCollection () : Cookie.Values;
             }
         }
 
         public override string ToString()
         {
-            if (!IsEncrypted)
-                return Cookie.ToString ();
-            else
-                return "Encrypted Cookie";
+            return IsEncrypted ? "Encrypted Cookie" : Cookie.ToString ();
         }
 
         public void Encrypt()
