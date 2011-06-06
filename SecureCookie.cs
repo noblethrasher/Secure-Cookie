@@ -20,7 +20,7 @@ namespace Harmony
         public string Domain { get { return Cookie.Domain; } set { Cookie.Domain = value; } }
         public DateTime Expires { get { return Cookie.Expires; } set { Cookie.Expires = value; } }
         public string Value { get { return Cookie.Value; } }
-        
+
         public bool? HasKeys
         {
             get
@@ -28,8 +28,8 @@ namespace Harmony
                 return IsEncrypted ? new Nullable<bool> () : new Nullable<bool> (Cookie.HasKeys);
             }
         }
-            
-        public NameValueCollection Values 
+
+        public NameValueCollection Values
         {
             get
             {
@@ -45,19 +45,40 @@ namespace Harmony
         public void Encrypt()
         {
             if (!IsEncrypted)
+            {
                 this.Cookie.Value = MachineKey.Encode (Encoding.Unicode.GetBytes (this.Value), MachineKeyProtection.Encryption);
+                IsEncrypted = true;
+            }
         }
 
         public void Decrypt()
         {
             if (IsEncrypted)
-                this.Cookie.Value = Encoding.Unicode.GetString (MachineKey.Decode (this.Value, MachineKeyProtection.Encryption));
+            {
+                IsEncrypted = false;
+                var values = Encoding.Unicode.GetString (MachineKey.Decode (this.Value, MachineKeyProtection.Encryption)).Replace ("%3d", "=").Replace ("%26", ";").Split ('&');
+
+                if (values.Length > 0 && values.All(x => x.Contains("=") && !x.EndsWith("=") ))
+                {
+                    this.Cookie.Values.Clear ();
+
+                    foreach (var value in values)
+                    {
+                        var kv = value.Split ('=');
+
+                        Cookie.Values.Add (kv[0], kv[1]);
+                    }
+                }
+
+
+            }
         }
 
-        public SecureCookie(HttpCookie cookie)
+        public SecureCookie(HttpCookie cookie, bool isEncrypted = false)
         {
             this.Cookie = cookie;
-        }
+            this.IsEncrypted = isEncrypted;
+        }        
 
         public SecureCookie(string Name, string Value)
         {
@@ -70,13 +91,15 @@ namespace Harmony
 
             foreach (var kv in dictionary)
                 cookie.Values.Add (kv.Key, kv.Value);
-            
+
             this.Cookie = cookie;
         }
 
         public static implicit operator SecureCookie(HttpCookie cookie)
         {
-            return new SecureCookie (cookie);            
+            return new SecureCookie (cookie);
         }
     }
+       
+
 }
