@@ -6,7 +6,7 @@ using System.Web;
 using System.Collections.Specialized;
 using System.Web.Security;
 
-namespace SecureCookie
+namespace Harmony
 {
     public class SecureCookie
     {
