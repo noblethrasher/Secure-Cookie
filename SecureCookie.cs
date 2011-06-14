@@ -1,17 +1,17 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Web;
 using System.Collections.Specialized;
+using System.Text;
 using System.Web.Security;
 
-namespace Harmony
+namespace Point4
 {
-    public class SecureCookie
+    public abstract class SecureCookie
     {
-        public HttpCookie Cookie { get; private set; }
-        public bool IsEncrypted { get; private set; }
+        public HttpCookie Cookie { get; protected set; }
+        public bool IsEncrypted { get; protected set; }
 
         public string Name { get { return Cookie.Name; } set { Cookie.Name = value; } }
         public string Path { get { return Cookie.Path; } set { Cookie.Path = value; } }
@@ -42,37 +42,8 @@ namespace Harmony
             return IsEncrypted ? "Encrypted Cookie" : Cookie.ToString ();
         }
 
-        public void Encrypt()
-        {
-            if (!IsEncrypted)
-            {
-                this.Cookie.Value = MachineKey.Encode (Encoding.Unicode.GetBytes (this.Value), MachineKeyProtection.Encryption);
-                IsEncrypted = true;
-            }
-        }
-
-        public void Decrypt()
-        {
-            if (IsEncrypted)
-            {
-                IsEncrypted = false;
-                var values = Encoding.Unicode.GetString (MachineKey.Decode (this.Value, MachineKeyProtection.Encryption)).Replace ("%3d", "=").Replace ("%26", ";").Split ('&');
-
-                if (values.Length > 0 && values.All(x => x.Contains("=") && !x.EndsWith("=") ))
-                {
-                    this.Cookie.Values.Clear ();
-
-                    foreach (var value in values)
-                    {
-                        var kv = value.Split ('=');
-
-                        Cookie.Values.Add (kv[0], kv[1]);
-                    }
-                }
-
-
-            }
-        }
+        public abstract EncryptedCookie Encrypt();
+        public abstract DecryptedCookie Decrypt();        
 
         public SecureCookie(HttpCookie cookie, bool isEncrypted = false)
         {
@@ -97,9 +68,101 @@ namespace Harmony
 
         public static implicit operator SecureCookie(HttpCookie cookie)
         {
-            return new SecureCookie (cookie);
+            return new EncryptedCookie (cookie);
         }
     }
-       
 
+    public class EncryptedCookie : SecureCookie
+    {
+       
+        public EncryptedCookie(HttpCookie cookie) : base(cookie)
+        {
+            cookie.Value = encrypt (cookie.Value);
+            this.IsEncrypted = true;
+        }
+
+        public EncryptedCookie(DecryptedCookie cookie) : this(cookie.Cookie)
+        {
+
+        }
+
+        private string encrypt(string message)
+        {
+            return MachineKey.Encode (Encoding.Unicode.GetBytes (message), MachineKeyProtection.Encryption);
+        }
+
+        public override EncryptedCookie Encrypt()
+        {
+            return this;
+        }
+
+        public override DecryptedCookie Decrypt()
+        {
+            return new DecryptedCookie (this);
+        }
+    }
+
+    public class DecryptedCookie : SecureCookie
+    {
+
+        public DecryptedCookie(EncryptedCookie cookie) : this(cookie.Cookie)
+        {
+            
+        }
+
+        public DecryptedCookie(HttpCookie cookie) : base (cookie, true)
+        {
+            decrypt (cookie);
+            this.Cookie = cookie;
+            this.IsEncrypted = false;
+        }
+      
+        public override EncryptedCookie Encrypt()
+        {
+            return new EncryptedCookie (this.Cookie);
+        }
+
+        public override DecryptedCookie Decrypt()
+        {
+            return this;
+        }
+
+        void decrypt(HttpCookie cookie)
+        {
+            try
+            {
+                var values = Encoding.Unicode.GetString (MachineKey.Decode (cookie.Value, MachineKeyProtection.Encryption)).Replace ("%3d", "=").Replace ("%26", ";").Split ('&');
+
+                if (values.Length > 0)
+                {
+                    cookie.Values.Clear ();
+
+                    if (values.All (x => x.Contains ("=") && !x.EndsWith ("=")))
+                    {
+                        foreach (var value in values)
+                        {
+                            var kv = value.Split ('=');
+
+                            cookie.Values.Add (kv[0], kv[1]);
+                        }
+                    }
+                    else
+                    {
+                        cookie.Value = values[0];
+                    }
+                }
+            }
+            catch (HttpException ex)
+            {
+                if (ex.Message == "Unable to validate data.")
+                {
+                    //assume cookie is not encrypted
+                }
+                else
+                    throw;
+            }
+
+            IsEncrypted = false;                
+        }
+    }
 }
